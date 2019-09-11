@@ -14,6 +14,7 @@ type OpenidClientAuthorizationPermission struct {
 	DecisionStrategy string   `json:"decisionStrategy"`
 	Policies         []string `json:"policies"`
 	Resources        []string `json:"resources"`
+	Scopes           []string `json:"scopes"`
 	Type             string   `json:"type"`
 }
 
@@ -41,6 +42,16 @@ func (keycloakClient *KeycloakClient) GetOpenidClientAuthorizationPermission(rea
 	if err != nil {
 		return nil, err
 	}
+	if permission.Type == "scope" {
+		scopes := []OpenidClientAuthorizationScope{}
+		err = keycloakClient.get(fmt.Sprintf("/realms/%s/clients/%s/authz/resource-server/permission/%s/scopes", realm, resourceServerId, id), &scopes, nil)
+		if err != nil {
+			return nil, err
+		}
+		for _, scope := range scopes {
+			permission.Scopes = append(permission.Scopes, scope.Name)
+		}
+	}
 
 	for _, policy := range policies {
 		permission.Policies = append(permission.Policies, policy.Id)
@@ -54,7 +65,11 @@ func (keycloakClient *KeycloakClient) GetOpenidClientAuthorizationPermission(rea
 }
 
 func (keycloakClient *KeycloakClient) NewOpenidClientAuthorizationPermission(permission *OpenidClientAuthorizationPermission) error {
-	body, _, err := keycloakClient.post(fmt.Sprintf("/realms/%s/clients/%s/authz/resource-server/permission", permission.RealmId, permission.ResourceServerId), permission)
+	url := "/realms/%s/clients/%s/authz/resource-server/permission"
+	if permission.Type == "scope" {
+		url += "/scope"
+	}
+	body, _, err := keycloakClient.post(fmt.Sprintf(url, permission.RealmId, permission.ResourceServerId), permission)
 	if err != nil {
 		return err
 	}
@@ -66,13 +81,21 @@ func (keycloakClient *KeycloakClient) NewOpenidClientAuthorizationPermission(per
 }
 
 func (keycloakClient *KeycloakClient) UpdateOpenidClientAuthorizationPermission(permission *OpenidClientAuthorizationPermission) error {
-	err := keycloakClient.put(fmt.Sprintf("/realms/%s/clients/%s/authz/resource-server/permission/resource/%s", permission.RealmId, permission.ResourceServerId, permission.Id), permission)
+	url := "/realms/%s/clients/%s/authz/resource-server/permission/resource/%s"
+	if permission.Type == "scope" {
+		url = "/realms/%s/clients/%s/authz/resource-server/permission/resource/scope/%s"
+	}
+	err := keycloakClient.put(fmt.Sprintf(url, permission.RealmId, permission.ResourceServerId, permission.Id), permission)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (keycloakClient *KeycloakClient) DeleteOpenidClientAuthorizationPermission(realmId, resourceServerId, permissionId string) error {
-	return keycloakClient.delete(fmt.Sprintf("/realms/%s/clients/%s/authz/resource-server/permission/%s", realmId, resourceServerId, permissionId), nil)
+func (keycloakClient *KeycloakClient) DeleteOpenidClientAuthorizationPermission(realmId, resourceServerId, permissionType, permissionId string) error {
+	url := "/realms/%s/clients/%s/authz/resource-server/permission/%s"
+	if permissionType == "scope" {
+		url = "/realms/%s/clients/%s/authz/resource-server/permission/scope/%s"
+	}
+	return keycloakClient.delete(fmt.Sprintf(url, realmId, resourceServerId, permissionId), nil)
 }

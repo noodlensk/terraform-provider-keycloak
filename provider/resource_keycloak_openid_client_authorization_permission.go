@@ -2,10 +2,11 @@ package provider
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/mrparkers/terraform-provider-keycloak/keycloak"
-	"strings"
 )
 
 var (
@@ -57,10 +58,15 @@ func resourceKeycloakOpenidClientAuthorizationPermission() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 			},
+			"scopes": {
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+			},
 			"type": {
 				Type:         schema.TypeString,
-				Optional:     true,
-				Default:      "resource",
+				Required:     true,
+				ForceNew:     true,
 				ValidateFunc: validation.StringInSlice(keycloakOpenidClientPermissionTypes, false),
 			},
 		},
@@ -70,6 +76,7 @@ func resourceKeycloakOpenidClientAuthorizationPermission() *schema.Resource {
 func getOpenidClientAuthorizationPermissionFromData(data *schema.ResourceData) *keycloak.OpenidClientAuthorizationPermission {
 	var policies []string
 	var resources []string
+	var scopes []string
 	if v, ok := data.GetOk("resources"); ok {
 		for _, resource := range v.(*schema.Set).List() {
 			resources = append(resources, resource.(string))
@@ -78,6 +85,11 @@ func getOpenidClientAuthorizationPermissionFromData(data *schema.ResourceData) *
 	if v, ok := data.GetOk("policies"); ok {
 		for _, policy := range v.(*schema.Set).List() {
 			policies = append(policies, policy.(string))
+		}
+	}
+	if v, ok := data.GetOk("scopes"); ok {
+		for _, scope := range v.(*schema.Set).List() {
+			scopes = append(scopes, scope.(string))
 		}
 	}
 	permission := keycloak.OpenidClientAuthorizationPermission{
@@ -90,6 +102,7 @@ func getOpenidClientAuthorizationPermissionFromData(data *schema.ResourceData) *
 		Type:             data.Get("type").(string),
 		Policies:         policies,
 		Resources:        resources,
+		Scopes:           scopes,
 	}
 	return &permission
 }
@@ -104,6 +117,7 @@ func setOpenidClientAuthorizationPermissionData(data *schema.ResourceData, permi
 	data.Set("type", permission.Type)
 	data.Set("policies", permission.Policies)
 	data.Set("resources", permission.Resources)
+	data.Set("scopes", permission.Scopes)
 }
 
 func resourceKeycloakOpenidClientAuthorizationPermissionCreate(data *schema.ResourceData, meta interface{}) error {
@@ -158,9 +172,10 @@ func resourceKeycloakOpenidClientAuthorizationPermissionDelete(data *schema.Reso
 
 	realmId := data.Get("realm_id").(string)
 	resourceServerId := data.Get("resource_server_id").(string)
+	permissionType := data.Get("type").(string)
 	id := data.Id()
 
-	return keycloakClient.DeleteOpenidClientAuthorizationPermission(realmId, resourceServerId, id)
+	return keycloakClient.DeleteOpenidClientAuthorizationPermission(realmId, resourceServerId, permissionType, id)
 }
 
 func resourceKeycloakOpenidClientAuthorizationPermissionImport(d *schema.ResourceData, _ interface{}) ([]*schema.ResourceData, error) {

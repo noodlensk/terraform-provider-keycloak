@@ -2,11 +2,12 @@ package provider
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mrparkers/terraform-provider-keycloak/keycloak"
-	"testing"
 )
 
 func TestAccKeycloakOpenidClientAuthorizationPermission_basic(t *testing.T) {
@@ -49,7 +50,7 @@ func TestAccKeycloakOpenidClientAuthorizationPermission_createAfterManualDestroy
 				PreConfig: func() {
 					keycloakClient := testAccProvider.Meta().(*keycloak.KeycloakClient)
 
-					err := keycloakClient.DeleteOpenidClientAuthorizationPermission(authorizationPermission.RealmId, authorizationPermission.ResourceServerId, authorizationPermission.Id)
+					err := keycloakClient.DeleteOpenidClientAuthorizationPermission(authorizationPermission.RealmId, authorizationPermission.ResourceServerId, authorizationPermission.Type, authorizationPermission.Id)
 					if err != nil {
 						t.Fatal(err)
 					}

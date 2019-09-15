@@ -229,6 +229,7 @@ resource keycloak_openid_client_authorization_resource test {
 resource keycloak_openid_client_authorization_permission test {
 	resource_server_id = "${keycloak_openid_client.test.resource_server_id}"
 	realm_id           = "${keycloak_realm.test.id}"
+	type 			   = "resource"
 	name               = "%s"
 	policies           = ["${data.keycloak_openid_client_authorization_policy.default.id}"]
    resources          = ["${keycloak_openid_client_authorization_resource.test.id}"]
@@ -271,6 +272,7 @@ resource keycloak_openid_client_authorization_resource resource {
 resource keycloak_openid_client_authorization_permission test {
 	resource_server_id = "${keycloak_openid_client.test.resource_server_id}"
 	realm_id           = "${keycloak_realm.test.id}"
+	type               = "resource"
 	name               = "%s"
 	policies           = ["${data.keycloak_openid_client_authorization_policy.default.id}"]
    resources          = ["${keycloak_openid_client_authorization_resource.resource.id}"]
